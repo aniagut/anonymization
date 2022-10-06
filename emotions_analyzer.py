@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
-from keras.models import  load_model
-from keras.preprocessing import image
+from keras.models import load_model
+from tensorflow.keras.preprocessing import image
 import os
 from moviepy.audio.io.AudioFileClip import AudioFileClip
 from moviepy.video.io.VideoFileClip import VideoFileClip
@@ -9,6 +9,7 @@ from moviepy.video.io.VideoFileClip import VideoFileClip
 model = load_model("best_model.h5")
 emotions = ('angry', 'disgust', 'fear', 'happy', 'sad', 'surprise', 'neutral')
 face_haar_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
+
 
 def analyze_emotions_on_video(filename):
     path = os.path.join("processing", filename)
@@ -33,7 +34,6 @@ def analyze_emotions_on_video(filename):
         faces = face_haar_cascade.detectMultiScale(gray, 1.32, 5)
 
         for (x, y, w, h) in faces:
-
             cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 255, 255), thickness=4)
 
             face = gray[y:y + w, x:x + h]
@@ -56,7 +56,7 @@ def analyze_emotions_on_video(filename):
     print(emotions_list)
 
     name, extension = os.path.splitext(filename)
-    new_video_name = os.path.join("processing", f"{name}_processed{extension}")
+    new_video_name = os.path.join("processing/emotions", f"{name}_processed{extension}")
     videowriter = cv2.VideoWriter(new_video_name, cv2.VideoWriter_fourcc(*'DIVX'), fps, (imageWidth, imageHeight))
     for i in range(len(frame_list)):
         videowriter.write(frame_list[i])
@@ -71,12 +71,13 @@ def analyze_emotions_on_video(filename):
     videoclip = clip.set_audio(audioclip)
 
     # saving video clip
-    new_video_sound_name = os.path.join("processing", f"{name}_processed_sound{extension}")
+    new_video_sound_name = os.path.join("processing/emotions", f"{name}_processed_sound{extension}")
     videoclip.write_videofile(new_video_sound_name)
 
     cv2.destroyAllWindows()
 
     return emotions_list
+
 
 def analyze_emotion_on_photo(filename):
     path = os.path.join("processing", filename)
@@ -105,7 +106,8 @@ def analyze_emotion_on_photo(filename):
         cv2.putText(photo, predicted_emotion, (int(x), int(y)), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
 
     name, extension = os.path.splitext(filename)
-    new_image_name = os.path.join("processing", f"{name}_processed{extension}")
+    new_image_name = os.path.join("processing/emotions", f"{name}_processed{extension}")
+    print(new_image_name)
 
     cv2.imwrite(new_image_name, photo)
 

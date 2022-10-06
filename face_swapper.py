@@ -4,6 +4,7 @@ import numpy as np
 import dlib
 import time
 
+
 def swap_face_on_image(filename_src, filename_dest):
     path_src = os.path.join("processing", filename_src)
     path_dest = os.path.join("processing", filename_dest)
