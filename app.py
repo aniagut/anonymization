@@ -7,6 +7,7 @@ from face_anonymizer import anonymize_video, anonymize_photo
 import os
 import plotly.graph_objects as go
 
+
 mimetypes.init()
 
 WARNING_FILETYPE = "Uploaded file with unsupported type. " \
