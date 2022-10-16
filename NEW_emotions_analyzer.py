@@ -9,7 +9,6 @@ from tensorflow.keras.utils import img_to_array
 from moviepy.audio.io.AudioFileClip import AudioFileClip
 from moviepy.video.io.VideoFileClip import VideoFileClip
 
-
 emotion_model_path = 'best_model.h5'
 
 emotion_classifier = load_model(emotion_model_path, compile=False)
@@ -17,11 +16,13 @@ EMOTIONS = ["angry" ,"disgust","scared", "happy", "sad", "surprised",
  "neutral"]
 
 def analyze_emotions_on_photo(filename):
-    photo = cv2.imread(filename)
+    path = os.path.join("processing", filename)
+    photo = cv2.imread(path)
 
     face_locations = face_recognition.face_locations(photo)
 
     gray = cv2.cvtColor(photo, cv2.COLOR_BGR2RGB)
+    predicted_emotions = {}
 
     for idx, (top, right, bottom, left) in enumerate(face_locations):
         cv2.rectangle(photo, (left, top), (right, bottom), (255, 255, 255), thickness=4)
@@ -34,19 +35,24 @@ def analyze_emotions_on_photo(filename):
         predictions = emotion_classifier.predict(img_pixels)
         max_index = np.argmax(predictions[0])
         predicted_emotion = EMOTIONS[max_index]
+        predicted_emotions[idx] = predicted_emotion
 
         cv2.putText(photo, predicted_emotion, (int(left), int(top)), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
         cv2.putText(photo, f"id={idx}", (int(left), int(bottom)), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
-    cv2.imwrite("nic.jpg", photo)
-
+    name, extension = os.path.splitext(filename)
+    new_image_name = os.path.join("processing/emotions", f"{name}_processed{extension}")
+    cv2.imwrite(new_image_name, photo)
+    return predicted_emotions
 def analyze_emotions_on_video(filename):
-    video = cv2.VideoCapture(filename)
+    path = os.path.join("processing", filename)
+    video = cv2.VideoCapture(path)
+    timestamps = []
+    frames_list = []
+    known_encodings = []
+    emotions_list = {}
     fps = video.get(cv2.CAP_PROP_FPS)
     imageWidth = int(video.get(3))
     imageHeight = int(video.get(4))
-
-    known_encodings = []
-    frames_list = []
 
     while video.isOpened():
         ret,frame = video.read()
@@ -55,6 +61,7 @@ def analyze_emotions_on_video(filename):
             break
 
         face_locations = face_recognition.face_locations(frame)
+        timestamps.append(video.get(cv2.CAP_PROP_POS_MSEC))
 
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         face_encodings = face_recognition.face_encodings(frame)
@@ -79,13 +86,18 @@ def analyze_emotions_on_video(filename):
             predictions = emotion_classifier.predict(img_pixels)
             max_index = np.argmax(predictions[0])
             predicted_emotion = EMOTIONS[max_index]
+            if emotions_list.get(folder_no) is not None:
+                emotions_list[folder_no].append((predicted_emotion, timestamps[-1]))
+            else:
+                emotions_list[folder_no] = [(predicted_emotion, timestamps[-1])]
 
             cv2.putText(frame, predicted_emotion, (int(left), int(top)), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
             cv2.putText(frame, f"id={folder_no}", (int(left), int(bottom)), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
         frames_list.append(frame)
     video.release()
 
-    new_video_name = "dupa.mp4"
+    name, extension = os.path.splitext(filename)
+    new_video_name = os.path.join("processing/emotions", f"{name}_processed{extension}")
     videowriter = cv2.VideoWriter(new_video_name, cv2.VideoWriter_fourcc(*'DIVX'), fps, (imageWidth, imageHeight))
 
     for i in range(len(frames_list)):
@@ -95,13 +107,15 @@ def analyze_emotions_on_video(filename):
     clip = VideoFileClip(new_video_name)
 
     # loading audio file
-    audioclip = AudioFileClip(filename)
+    audioclip = AudioFileClip(path)
 
     # adding audio to the video clip
     videoclip = clip.set_audio(audioclip)
 
     # saving video clip
-    new_video_sound_name = os.path.join("dupa1.mp4")
+    new_video_sound_name = os.path.join("processing/emotions", f"{name}_processed_sound{extension}")
     videoclip.write_videofile(new_video_sound_name)
 
-analyze_emotions_on_video("film.mp4")
+    cv2.destroyAllWindows()
+
+    return emotions_list

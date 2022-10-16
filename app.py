@@ -2,10 +2,12 @@ from io import BytesIO
 
 import streamlit as st
 import mimetypes
-from emotions_analyzer import analyze_emotions_on_video, analyze_emotion_on_photo
+from emotions_analyzer import analyze_emotion_on_video, analyze_emotion_on_photo
 from face_anonymizer import anonymize_video, anonymize_photo
+from NEW_emotions_analyzer import analyze_emotions_on_photo, analyze_emotions_on_video
 import os
 import plotly.graph_objects as go
+import streamlit_authenticator as stauth
 
 
 mimetypes.init()
@@ -43,20 +45,22 @@ if uploaded_file is not None:
             if type == 'video':
                 with st.spinner("Please wait..."):
                     emotions = analyze_emotions_on_video(uploaded_file.name)
-                    emotions_dict = {}
-                    for emotion, timestamp in emotions:
-                        if emotions_dict.keys().__contains__(emotion):
-                            emotions_dict[emotion] += 1
-                        else:
-                            emotions_dict[emotion] = 1
-                    fig = go.Figure(
-                        go.Pie(
-                            labels=list(emotions_dict.keys()),
-                            values=list(emotions_dict.values()),
-                            hoverinfo="label+percent",
-                            textinfo="value"
+                    for id, emotions_list in emotions.items():
+                        emotions_dict = {}
+                        for emotion, timestamp in emotions_list:
+                            if emotions_dict.keys().__contains__(emotion):
+                                emotions_dict[emotion] += 1
+                            else:
+                                emotions_dict[emotion] = 1
+                        fig = go.Figure(
+                            go.Pie(
+                                labels=list(emotions_dict.keys()),
+                                values=list(emotions_dict.values()),
+                                hoverinfo="label+percent",
+                                textinfo="value",
+                                title=f"{id}"
+                            )
                         )
-                    )
                     name, extension = os.path.splitext(uploaded_file.name)
                     new_video_sound_name = os.path.join("processing/emotions", f"{name}_processed_sound{extension}")
                 if emotions:
@@ -71,7 +75,7 @@ if uploaded_file is not None:
 
             elif type == 'image':
                 with st.spinner("Please wait..."):
-                    emotions = analyze_emotion_on_photo(uploaded_file.name)
+                    emotions = analyze_emotions_on_photo(uploaded_file.name)
                     name, extension = os.path.splitext(uploaded_file.name)
                     new_image_name = os.path.join("processing/emotions", f"{name}_processed{extension}")
                 if emotions:

@@ -11,7 +11,7 @@ emotions = ('angry', 'disgust', 'fear', 'happy', 'sad', 'surprise', 'neutral')
 face_haar_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
 
 
-def analyze_emotions_on_video(filename):
+def analyze_emotion_on_video(filename):
     path = os.path.join("processing", filename)
     cap = cv2.VideoCapture(path)
     timestamps = []
@@ -52,8 +52,6 @@ def analyze_emotions_on_video(filename):
         frame_list.append(frame)
 
     cap.release()
-
-    print(emotions_list)
 
     name, extension = os.path.splitext(filename)
     new_video_name = os.path.join("processing/emotions", f"{name}_processed{extension}")
@@ -107,7 +105,6 @@ def analyze_emotion_on_photo(filename):
 
     name, extension = os.path.splitext(filename)
     new_image_name = os.path.join("processing/emotions", f"{name}_processed{extension}")
-    print(new_image_name)
 
     cv2.imwrite(new_image_name, photo)
 
