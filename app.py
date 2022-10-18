@@ -10,6 +10,7 @@ import plotly.graph_objects as go
 import streamlit_authenticator as stauth
 
 
+
 mimetypes.init()
 
 WARNING_FILETYPE = "Uploaded file with unsupported type. " \
