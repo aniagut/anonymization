@@ -8,13 +8,70 @@ from NEW_emotions_analyzer import analyze_emotions_on_photo, analyze_emotions_on
 import os
 import plotly.graph_objects as go
 import streamlit_authenticator as stauth
-
-
+import yaml
 
 mimetypes.init()
 
 WARNING_FILETYPE = "Uploaded file with unsupported type. " \
                    "Please upload file that is either a video or an image."
+with open('credentials.yaml') as file:
+    config = yaml.load(file, Loader=yaml.SafeLoader)
+
+authenticator = stauth.Authenticate(
+    config['credentials'],
+    config['cookie']['name'],
+    config['cookie']['key'],
+    config['cookie']['expiry_days'],
+    config['preauthorized']
+)
+
+name, authentication_status, username = authenticator.login('Login', 'sidebar')
+
+if authentication_status:
+    st.sidebar.write(f'Welcome *{name}*')
+    if st.sidebar.button("Update user details"):
+        try:
+            if authenticator.update_user_details(username, 'Update user details', 'sidebar'):
+                with open('credentials.yaml', 'w') as file:
+                    yaml.dump(config, file, default_flow_style=False)
+                st.sidebar.success('Entries updated successfully')
+        except Exception as e:
+            st.sidebar.error(e)
+    if st.sidebar.button("Reset password"):
+        try:
+            if authenticator.reset_password(username, 'Reset password', 'sidebar'):
+                with open('credentials.yaml', 'w') as file:
+                    yaml.dump(config, file, default_flow_style=False)
+                st.sidebar.success('Password modified successfully')
+        except Exception as e:
+            st.sidebar.error(e)
+    authenticator.logout('Logout', 'sidebar')
+elif authentication_status == False:
+    st.sidebar.error('Username/password is incorrect')
+elif authentication_status == None:
+    st.sidebar.warning('Please enter your username and password')
+
+if not authentication_status:
+    if st.sidebar.button("Forgot password"):
+        try:
+            username_forgot_pw, email_forgot_password, random_password = authenticator.forgot_password(
+                'Forgot password', 'sidebar')
+            if username_forgot_pw:
+                with open('credentials.yaml', 'w') as file:
+                    yaml.dump(config, file, default_flow_style=False)
+                st.sidebar.success('New password sent securely')
+            elif username_forgot_pw == False:
+                st.sidebar.error('Username not found')
+        except Exception as e:
+            st.sidebar.error(e)
+    if st.sidebar.button("Register"):
+        try:
+            if authenticator.register_user('Register user', 'sidebar', preauthorization=False):
+                with open('credentials.yaml', 'w') as file:
+                    yaml.dump(config, file, default_flow_style=False)
+                st.sidebar.success('User registered successfully')
+        except Exception as e:
+            st.sidebar.error(e)
 
 st.title("Face anonymization app")
 
