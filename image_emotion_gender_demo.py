@@ -42,9 +42,10 @@ def read_emotions(image_path):
     gray_image = load_image(image_path, grayscale=True)
     gray_image = np.squeeze(gray_image)
     gray_image = gray_image.astype('uint8')
+    emotions = {}
 
     faces = detect_faces(face_detection, gray_image)
-    for face_coordinates in faces:
+    for idx, face_coordinates in enumerate(faces):
         x1, x2, y1, y2 = apply_offsets(face_coordinates, gender_offsets)
         rgb_face = rgb_image[y1:y2, x1:x2]
 
@@ -68,15 +69,16 @@ def read_emotions(image_path):
         gray_face = np.expand_dims(gray_face, -1)
         emotion_label_arg = np.argmax(emotion_classifier.predict(gray_face))
         emotion_text = emotion_labels[emotion_label_arg]
+        emotions[idx] = emotion_text
 
-        if gender_text == gender_labels[0]:
-            color = (0, 0, 255)
-        else:
-            color = (255, 0, 0)
+        # if gender_text == gender_labels[0]:
+        #     color = (0, 0, 255)
+        # else:
+        color = (255, 0, 0)
 
         draw_bounding_box(face_coordinates, rgb_image, color)
-        draw_text(face_coordinates, rgb_image, gender_text, color, 0, -20, 1, 2)
-        draw_text(face_coordinates, rgb_image, emotion_text, color, 0, -50, 1, 2)
+        # draw_text(face_coordinates, rgb_image, str(idx), color, 0, -80, 1, 2)
+        # draw_text(face_coordinates, rgb_image, gender_text, color, 0, -20, 1, 2)
+        draw_text(face_coordinates, rgb_image, emotion_text, color, 0, -20, 1, 2)
 
-    return cv2.cvtColor(rgb_image, cv2.COLOR_RGB2BGR)
-
+    return cv2.cvtColor(rgb_image, cv2.COLOR_RGB2BGR), emotions

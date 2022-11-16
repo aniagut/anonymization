@@ -5,6 +5,7 @@ import numpy as np
 
 from keras.models import load_model
 from tensorflow.keras.utils import img_to_array
+from image_emotion_gender_demo import read_emotions
 
 from moviepy.audio.io.AudioFileClip import AudioFileClip
 from moviepy.video.io.VideoFileClip import VideoFileClip
@@ -12,37 +13,42 @@ from moviepy.video.io.VideoFileClip import VideoFileClip
 emotion_model_path = 'best_model.h5'
 
 emotion_classifier = load_model(emotion_model_path, compile=False)
-EMOTIONS = ["angry" ,"disgust","scared", "happy", "sad", "surprised",
- "neutral"]
+EMOTIONS = ["angry", "disgust", "scared", "happy", "sad", "surprised",
+            "neutral"]
+
 
 def analyze_emotions_on_photo(filename):
     path = os.path.join("processing", filename)
-    photo = cv2.imread(path)
-
-    face_locations = face_recognition.face_locations(photo)
-
-    gray = cv2.cvtColor(photo, cv2.COLOR_BGR2RGB)
-    predicted_emotions = {}
-
-    for idx, (top, right, bottom, left) in enumerate(face_locations):
-        cv2.rectangle(photo, (left, top), (right, bottom), (255, 255, 255), thickness=4)
-        face = gray[top:bottom, left:right]
-        face = cv2.resize(face, (224, 224))
-        img_pixels = img_to_array(face)
-        img_pixels = np.expand_dims(img_pixels, axis=0)
-        img_pixels /= 255
-
-        predictions = emotion_classifier.predict(img_pixels)
-        max_index = np.argmax(predictions[0])
-        predicted_emotion = EMOTIONS[max_index]
-        predicted_emotions[idx] = predicted_emotion
-
-        cv2.putText(photo, predicted_emotion, (int(left), int(top)), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
-        cv2.putText(photo, f"id={idx}", (int(left), int(bottom)), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+    photo, predicted_emotions = read_emotions(path)
+    # photo = cv2.imread(path)
+    #
+    # face_locations = face_recognition.face_locations(photo)
+    #
+    # gray = cv2.cvtColor(photo, cv2.COLOR_BGR2RGB)
+    # predicted_emotions = {}
+    #
+    # for idx, (top, right, bottom, left) in enumerate(face_locations):
+    #     cv2.rectangle(photo, (left, top), (right, bottom), (255, 255, 255), thickness=4)
+    #     face = gray[top:bottom, left:right]
+    #     face = cv2.resize(face, (224, 224))
+    #     img_pixels = img_to_array(face)
+    #     img_pixels = np.expand_dims(img_pixels, axis=0)
+    #     img_pixels /= 255
+    #
+    #     predictions = emotion_classifier.predict(img_pixels)
+    #     max_index = np.argmax(predictions[0])
+    #     predicted_emotion = EMOTIONS[max_index]
+    #     predicted_emotions[idx] = predicted_emotion
+    #
+    #     cv2.putText(photo, predicted_emotion, (int(left), int(top)), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+    #     cv2.putText(photo, f"id={idx}", (int(left), int(bottom)), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
     name, extension = os.path.splitext(filename)
     new_image_name = os.path.join("processing/emotions", f"{name}_processed{extension}")
     cv2.imwrite(new_image_name, photo)
+    print(predicted_emotions)
     return predicted_emotions
+
+
 def analyze_emotions_on_video(filename):
     path = os.path.join("processing", filename)
     video = cv2.VideoCapture(path)
@@ -55,7 +61,7 @@ def analyze_emotions_on_video(filename):
     imageHeight = int(video.get(4))
 
     while video.isOpened():
-        ret,frame = video.read()
+        ret, frame = video.read()
 
         if not ret:
             break
