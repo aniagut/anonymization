@@ -1,3 +1,4 @@
+import json
 from io import BytesIO
 
 import streamlit as st
@@ -11,6 +12,7 @@ import streamlit_authenticator as stauth
 import yaml
 from firebase_admin import db, storage, credentials, initialize_app, _apps
 from streamlit_modal import Modal
+import uuid
 
 # setup firebase
 if not _apps:
@@ -27,7 +29,7 @@ bucket = storage.bucket()
 mimetypes.init()
 
 anonymization_ready, analysis_ready = False, False
-file_type = None
+file_type, file_name = "", ""
 
 WARNING_FILETYPE = "Uploaded file with unsupported type. " \
                    "Please upload file that is either a video or an image."
@@ -93,17 +95,6 @@ if not authentication_status:
         except Exception as e:
             st.sidebar.error(e)
 
-modal = Modal("Share file", 1)
-share_button = st.button("Share")
-
-if modal.is_open():
-    with modal.container():
-        st.write("Text goes here")
-
-        st.write("Some fancy text")
-        value = st.checkbox("Check me")
-        st.write(f"Checkbox checked: {value}")
-
 st.title("Face anonymization app")
 
 st.subheader('Choose a picture or video to anonymize')
@@ -142,8 +133,15 @@ if uploaded_file is not None:
             anonymization_ready = False
             if type == 'video':
                 file_type = type
+                id = uuid.uuid4()
+                name, extension = os.path.splitext(uploaded_file.name)
+                file_name = os.path.join("processing/emotions", f"{id}{extension}")
+                with open("filename.txt", "w") as filenameFile:
+                    filenameFile.seek(0)
+                    filenameFile.write(file_name)
+                    filenameFile.truncate()
                 with st.spinner("Please wait..."):
-                    emotions = analyze_emotions_on_video(uploaded_file.name)
+                    emotions = analyze_emotions_on_video(uploaded_file.name, id)
                     for id, emotions_list in emotions.items():
                         emotions_dict = {}
                         for emotion, timestamp in emotions_list:
@@ -151,17 +149,19 @@ if uploaded_file is not None:
                                 emotions_dict[emotion] += 1
                             else:
                                 emotions_dict[emotion] = 1
-
-                    name, extension = os.path.splitext(uploaded_file.name)
-                    new_video_sound_name = os.path.join("processing/emotions", f"{name}_processed_sound{extension}")
                     analysis_ready = True
 
             elif type == 'image':
                 file_type = type
+                id = uuid.uuid4()
+                name, extension = os.path.splitext(uploaded_file.name)
+                file_name = os.path.join("processing/emotions", f"{id}{extension}")
+                with open("filename.txt", "w") as filenameFile:
+                    filenameFile.seek(0)
+                    filenameFile.write(file_name)
+                    filenameFile.truncate()
                 with st.spinner("Please wait..."):
-                    emotions = analyze_emotions_on_photo(uploaded_file.name)
-                    name, extension = os.path.splitext(uploaded_file.name)
-                    new_image_name = os.path.join("processing/emotions", f"{name}_processed{extension}")
+                    emotions = analyze_emotions_on_photo(uploaded_file.name, id)
                     analysis_ready = True
 
         if anonymize_button:
@@ -169,53 +169,90 @@ if uploaded_file is not None:
             anonymization_ready = False
             if type == 'video':
                 file_type = type
+                id = uuid.uuid4()
+                name, extension = os.path.splitext(uploaded_file.name)
+                file_name = os.path.join("processing/anonymization", f"{id}{extension}")
+                with open("filename.txt", "w") as filenameFile:
+                    filenameFile.seek(0)
+                    filenameFile.write(file_name)
+                    filenameFile.truncate()
                 with st.spinner("Please wait..."):
-                    anonymize_video(uploaded_file.name)
-
-                    name, extension = os.path.splitext(uploaded_file.name)
-                    new_video_sound_name = os.path.join("processing/anonymization", f"{name}_processed{extension}")
+                    anonymize_video(uploaded_file.name, id)
                     anonymization_ready = True
 
             elif type == 'image':
                 file_type = type
+                id = uuid.uuid4()
+                name, extension = os.path.splitext(uploaded_file.name)
+                file_name = os.path.join("processing/anonymization", f"{id}{extension}")
+                with open("filename.txt", "w") as filenameFile:
+                    filenameFile.seek(0)
+                    filenameFile.write(file_name)
+                    filenameFile.truncate()
                 with st.spinner("Please wait..."):
-                    anonymize_photo(uploaded_file.name)
-                    name, extension = os.path.splitext(uploaded_file.name)
-                    new_image_name = os.path.join("processing/anonymization", f"{name}_processed{extension}")
+                    anonymize_photo(uploaded_file.name, id)
                     anonymization_ready = True
 
         if analysis_ready:
             if emotions:
                 if file_type == 'image':
                     st.subheader("Emotions analysis on uploaded image")
-                    fh = open(new_image_name, 'rb')
+                    fh = open(file_name, 'rb')
                     buf = BytesIO(fh.read())
                     st.image(buf)
-                    st.download_button("Download", fh, new_image_name)
+                    st.download_button("Download", fh, file_name)
                 elif file_type == 'video':
                     st.subheader("Emotions analysis on uploaded video")
-                    fh = open(new_video_sound_name, 'rb')
+                    fh = open(file_name, 'rb')
                     buf = BytesIO(fh.read())
                     st.video(buf)
-                    st.download_button("Download", fh, new_video_sound_name)
+                    st.download_button("Download", fh, file_name)
             else:
                 st.warning("No emotions detected on uploaded video!")
         if anonymization_ready:
             if file_type == 'image':
                 st.subheader("Anonymization on uploaded image")
-                fh = open(new_image_name, 'rb')
+                fh = open(file_name, 'rb')
                 buf = BytesIO(fh.read())
                 st.image(buf)
-                st.download_button("Download", fh, new_image_name)
+                st.download_button("Download", fh, file_name)
             elif file_type=='video':
                 st.subheader("Anonymization on uploaded video")
-                fh = open(new_video_sound_name, 'rb')
+                fh = open(file_name, 'rb')
                 buf = BytesIO(fh.read())
                 st.video(buf)
-                st.download_button("Download", fh, new_video_sound_name)
+                st.download_button("Download", fh, file_name)
 
+        modal = Modal("Share file", 1)
+        if analysis_ready and emotions or anonymization_ready:
+            st.button("Share", on_click=modal.open)
+        if modal.is_open():
+            with modal.container():
+                title = st.text_input("Title")
+                description = st.text_area("Description")
 
+                private = st.checkbox("Save in library")
+                public = st.checkbox("Share")
+                print(file_name)
+                if st.button("Share file"):
+                    with open("filename.txt", "r") as f:
+                        file_name = f.read()
+                    fullname, extension = os.path.splitext(file_name)
+                    if fullname.__contains__("emotions"):
+                        fileid = fullname.replace("processing/emotions\\", "")
+                    elif fullname.__contains__("anonymization"):
+                        fileid = fullname.replace("processing/anonymization\\", "")
+                    priv_ref = db.reference(f"/{username}/files/{fileid}")
+                    pub_ref = db.reference(f"/public/{fileid}")
+                    content = '{ ' + f'"title": "{title}", "description": "{description}", "extension": "{extension}"' + ' }'
+                    json_content = json.loads(content)
+                    if private:
+                        priv_ref.set(json_content)
+                    if public:
+                        pub_ref.set(json_content)
+                    bucket = storage.bucket()
+                    blob = bucket.blob(f"{fileid}{extension}")
+                    blob.upload_from_filename(file_name)
+                    modal.close()
 
-if share_button:
-    modal.open()
 

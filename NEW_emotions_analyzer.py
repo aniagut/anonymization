@@ -17,7 +17,7 @@ EMOTIONS = ["angry", "disgust", "scared", "happy", "sad", "surprised",
             "neutral"]
 
 
-def analyze_emotions_on_photo(filename):
+def analyze_emotions_on_photo(filename, id):
     path = os.path.join("processing", filename)
     photo, predicted_emotions = read_emotions(path)
     # photo = cv2.imread(path)
@@ -43,13 +43,13 @@ def analyze_emotions_on_photo(filename):
     #     cv2.putText(photo, predicted_emotion, (int(left), int(top)), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
     #     cv2.putText(photo, f"id={idx}", (int(left), int(bottom)), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
     name, extension = os.path.splitext(filename)
-    new_image_name = os.path.join("processing/emotions", f"{name}_processed{extension}")
+    new_image_name = os.path.join("processing/emotions", f"{id}{extension}")
     cv2.imwrite(new_image_name, photo)
     print(predicted_emotions)
     return predicted_emotions
 
 
-def analyze_emotions_on_video(filename):
+def analyze_emotions_on_video(filename, id):
     path = os.path.join("processing", filename)
     video = cv2.VideoCapture(path)
     timestamps = []
@@ -103,7 +103,7 @@ def analyze_emotions_on_video(filename):
     video.release()
 
     name, extension = os.path.splitext(filename)
-    new_video_name = os.path.join("processing/emotions", f"{name}_processed{extension}")
+    new_video_name = os.path.join("processing/emotions", f"{id}{extension}")
     videowriter = cv2.VideoWriter(new_video_name, cv2.VideoWriter_fourcc(*'DIVX'), fps, (imageWidth, imageHeight))
 
     for i in range(len(frames_list)):
@@ -119,7 +119,7 @@ def analyze_emotions_on_video(filename):
     videoclip = clip.set_audio(audioclip)
 
     # saving video clip
-    new_video_sound_name = os.path.join("processing/emotions", f"{name}_processed_sound{extension}")
+    new_video_sound_name = os.path.join("processing/emotions", f"{id}{extension}")
     videoclip.write_videofile(new_video_sound_name)
 
     cv2.destroyAllWindows()
