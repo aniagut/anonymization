@@ -5,7 +5,7 @@ import numpy as np
 
 from keras.models import load_model
 from tensorflow.keras.utils import img_to_array
-from image_emotion_gender_demo import read_emotions
+from gaze_tracking import GazeTracking
 
 from moviepy.audio.io.AudioFileClip import AudioFileClip
 from moviepy.video.io.VideoFileClip import VideoFileClip
@@ -17,51 +17,78 @@ EMOTIONS = ["angry", "disgust", "scared", "happy", "sad", "surprised",
             "neutral"]
 
 
-def analyze_emotions_on_photo(filename, id):
-    path = os.path.join("processing", filename)
-    photo, predicted_emotions = read_emotions(path)
-    # photo = cv2.imread(path)
-    #
-    # face_locations = face_recognition.face_locations(photo)
-    #
-    # gray = cv2.cvtColor(photo, cv2.COLOR_BGR2RGB)
-    # predicted_emotions = {}
-    #
-    # for idx, (top, right, bottom, left) in enumerate(face_locations):
-    #     cv2.rectangle(photo, (left, top), (right, bottom), (255, 255, 255), thickness=4)
-    #     face = gray[top:bottom, left:right]
-    #     face = cv2.resize(face, (224, 224))
-    #     img_pixels = img_to_array(face)
-    #     img_pixels = np.expand_dims(img_pixels, axis=0)
-    #     img_pixels /= 255
-    #
-    #     predictions = emotion_classifier.predict(img_pixels)
-    #     max_index = np.argmax(predictions[0])
-    #     predicted_emotion = EMOTIONS[max_index]
-    #     predicted_emotions[idx] = predicted_emotion
-    #
-    #     cv2.putText(photo, predicted_emotion, (int(left), int(top)), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
-    #     cv2.putText(photo, f"id={idx}", (int(left), int(bottom)), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+def analyze_emotions_on_photo(filename, flie_id):
+    gaze = GazeTracking()
+    path = os.path.join("processing", f"{filename}")
+
+    img_to_recognize = face_recognition.load_image_file(path)
+    face_locations = face_recognition.face_locations(img_to_recognize)
     name, extension = os.path.splitext(filename)
-    new_image_name = os.path.join("processing/emotions", f"{id}{extension}")
-    cv2.imwrite(new_image_name, photo)
-    print(predicted_emotions)
+
+    anonymized_path = os.path.join("processing/anonymization", f"{flie_id}{extension}")
+
+    anonymized_photo = cv2.imread(anonymized_path)
+    photo = cv2.imread(path)
+
+    gray = cv2.cvtColor(photo, cv2.COLOR_BGR2RGB)
+    predicted_emotions = {}
+    for idx, (top, right, bottom, left) in enumerate(face_locations):
+        cv2.rectangle(anonymized_photo, (left, top), (right, bottom), (255, 255, 255), thickness=4)
+        face = gray[top:bottom, left:right]
+        facergb = photo[top:bottom, left:right]
+        gaze.refresh(facergb)
+        horizontal, vertical = gaze.horizontal_ratio(), gaze.vertical_ratio()
+        if not horizontal:
+            horizontal = 0.5
+        if not vertical:
+            vertical = 0.5
+        if horizontal <= 0.4:
+            h = 'R'
+        elif horizontal < 0.6:
+            h = 'C'
+        else:
+            h = 'L'
+        if vertical <= 0.4:
+            v = 'U'
+        elif vertical < 0.6:
+            v = 'C'
+        else:
+            v = 'D'
+        face = cv2.resize(face, (224, 224))
+        img_pixels = img_to_array(face)
+        img_pixels = np.expand_dims(img_pixels, axis=0)
+        img_pixels /= 255
+
+        predictions = emotion_classifier.predict(img_pixels)
+        max_index = np.argmax(predictions[0])
+        predicted_emotion = EMOTIONS[max_index]
+        predicted_emotions[idx] = (predicted_emotion, h, v)
+
+        cv2.putText(anonymized_photo, predicted_emotion, (int(left), int(top)), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+        cv2.putText(anonymized_photo, f"id={idx}", (int(left), int(bottom)), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+    new_image_name = os.path.join("processing/emotions", f"{flie_id}{extension}")
+    cv2.imwrite(new_image_name, anonymized_photo)
     return predicted_emotions
 
 
 def analyze_emotions_on_video(filename, id):
+    gaze = GazeTracking()
     path = os.path.join("processing", filename)
     video = cv2.VideoCapture(path)
+    name, extension = os.path.splitext(filename)
+    anonymized_path = os.path.join("processing/anonymization", f"{id}{extension}")
+    anonymized_video = cv2.VideoCapture(anonymized_path)
     timestamps = []
     frames_list = []
     known_encodings = []
     emotions_list = {}
-    fps = video.get(cv2.CAP_PROP_FPS)
-    imageWidth = int(video.get(3))
-    imageHeight = int(video.get(4))
+    fps = anonymized_video.get(cv2.CAP_PROP_FPS)
+    imageWidth = int(anonymized_video.get(3))
+    imageHeight = int(anonymized_video.get(4))
 
     while video.isOpened():
         ret, frame = video.read()
+        anon_ret, anon_frame = anonymized_video.read()
 
         if not ret:
             break
@@ -73,9 +100,29 @@ def analyze_emotions_on_video(filename, id):
         face_encodings = face_recognition.face_encodings(frame)
 
         for idx, (top, right, bottom, left) in enumerate(face_locations):
-            cv2.rectangle(frame, (left, top), (right, bottom), (255, 255, 255), thickness=4)
+            cv2.rectangle(anon_frame, (left, top), (right, bottom), (255, 255, 255), thickness=4)
             face = gray[top:bottom, left:right]
             face = cv2.resize(face, (224, 224))
+
+            facergb = frame[top:bottom, left:right]
+            gaze.refresh(facergb)
+            horizontal, vertical = gaze.horizontal_ratio(), gaze.vertical_ratio()
+            if not horizontal:
+                horizontal = 0.5
+            if not vertical:
+                vertical = 0.5
+            if horizontal <= 0.4:
+                h = 'R'
+            elif horizontal < 0.6:
+                h = 'C'
+            else:
+                h = 'L'
+            if vertical <= 0.4:
+                v = 'U'
+            elif vertical < 0.6:
+                v = 'C'
+            else:
+                v = 'D'
 
             face_encoding = face_encodings[idx]
             comparison = face_recognition.compare_faces(known_encodings, face_encoding)
@@ -93,17 +140,17 @@ def analyze_emotions_on_video(filename, id):
             max_index = np.argmax(predictions[0])
             predicted_emotion = EMOTIONS[max_index]
             if emotions_list.get(folder_no) is not None:
-                emotions_list[folder_no].append((predicted_emotion, timestamps[-1]))
+                emotions_list[folder_no].append((predicted_emotion, h, v, timestamps[-1]))
             else:
-                emotions_list[folder_no] = [(predicted_emotion, timestamps[-1])]
+                emotions_list[folder_no] = [(predicted_emotion, h, v, timestamps[-1])]
 
-            cv2.putText(frame, predicted_emotion, (int(left), int(top)), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
-            cv2.putText(frame, f"id={folder_no}", (int(left), int(bottom)), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
-        frames_list.append(frame)
+            cv2.putText(anon_frame, predicted_emotion, (int(left), int(top)), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+            cv2.putText(anon_frame, f"id={folder_no}", (int(left), int(bottom)), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+        frames_list.append(anon_frame)
     video.release()
+    anonymized_video.release()
 
-    name, extension = os.path.splitext(filename)
-    new_video_name = os.path.join("processing/emotions", f"{id}{extension}")
+    new_video_name = os.path.join("processing/emotions", f"{id}_ns{extension}")
     videowriter = cv2.VideoWriter(new_video_name, cv2.VideoWriter_fourcc(*'DIVX'), fps, (imageWidth, imageHeight))
 
     for i in range(len(frames_list)):
