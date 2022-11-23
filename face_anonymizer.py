@@ -1,4 +1,4 @@
-from deep_privacy import build_anonymizer
+from deep_privacy.build import build_anonymizer
 import os
 import pathlib
 
