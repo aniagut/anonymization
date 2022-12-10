@@ -1,7 +1,13 @@
 from deep_privacy.build import build_anonymizer
 import os
 import pathlib
+from keras.models import load_model
 
+emotion_model_path = 'best_model.h5'
+
+emotion_classifier = load_model(emotion_model_path, compile=False)
+EMOTIONS = ["angry", "disgust", "scared", "happy", "sad", "surprised",
+            "neutral"]
 
 def anonymize_video(filename, id):
     path = os.path.join("processing", filename)

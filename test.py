@@ -38,7 +38,7 @@
 from NEW_emotions_analyzer import analyze_emotions_on_photo, analyze_emotions_on_video
 
 # print(analyze_emotions_on_video("trimmed3.mp4", "dc9fde7e-faab-4236-a470-cb137621eb2a"))
-print(analyze_emotions_on_photo("oryginalne.jpg", "7cf9e921-c240-47a6-9a7f-0f34dfb79216"))
+print(analyze_emotions_on_photo("2.jpg", "a971147e-aba2-4e31-a9e5-9bf8ad6ab097-2"))
 # emotions_list = {0: [('happy', time1), ('sad', time2)], 1: [('happy', time1), ('sad', time2)], 2: [('happy', time1), ('sad', time2)], 3: [('happy', time1), ('sad', time2)], 4: [('happy', time1), ('sad', time2)]}
 
 # for person, emotions in emotions_list.items():

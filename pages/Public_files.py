@@ -26,7 +26,7 @@ for file_name, file_info in files.items():
     blob.download_to_filename(file_path)
     fh = open(file_path, 'rb')
     buf = BytesIO(fh.read())
-    st.image(buf)
+    st.video(buf)
     title = file_info['title']
     description = file_info['description']
     emotions = file_info['emotions']
@@ -34,6 +34,7 @@ for file_name, file_info in files.items():
         st.write(f"Title: {title}")
     if description is not None:
         st.write(f"Description: {description}")
+    emotions = 124
     if emotions:
         blob_rap = bucket.blob(f"{file_name}{extension}")
         file_path_rap = os.path.join("processing/anonymization", f"report-{file_name}.pdf")
