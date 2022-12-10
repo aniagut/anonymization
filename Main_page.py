@@ -125,7 +125,7 @@ if uploaded_file is not None:
 
         anon_path = os.path.join("processing/anonymization", f"{file_id}{extension}")
 
-        if file_id is not "" and os.path.isfile(anon_path) and anon_path.__contains__(f"-{original_name}{extension}"):
+        if file_id != "" and os.path.isfile(anon_path) and anon_path.__contains__(f"-{original_name}{extension}"):
             anonymization_ready = True
             emotions_path = os.path.join("processing/emotions", f"{file_id}{extension}")
             if os.path.isfile(emotions_path):

@@ -33,7 +33,6 @@ for file_name, file_info in files.items():
         st.write(f"Title: {title}")
     if description is not None:
         st.write(f"Description: {description}")
-    emotions = 124
     if emotions:
         blob_rap = bucket.blob(f"{file_name}{extension}")
         file_path_rap = os.path.join("processing/anonymization", f"report-{file_name}.pdf")
