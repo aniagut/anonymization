@@ -113,7 +113,7 @@ if uploaded_file is not None:
 
     if type in ['video', 'image']:
 
-        with open(os.path.join("processing", uploaded_file.name), "wb") as f:
+        with open(os.path.join("processing", uploaded_file.name), "w+") as f:
             f.write(uploaded_file.getbuffer())
 
         file_name = uploaded_file.name
