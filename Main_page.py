@@ -29,8 +29,11 @@ mimetypes.init()
 WARNING_FILETYPE = "Uploaded file with unsupported type. " \
                    "Please upload file that is either a video or an image."
 
-with open('credentials.yaml') as file:
-    config = yaml.load(file, Loader=yaml.SafeLoader)
+blob = bucket.blob("credentials.yaml")
+cred_file_name = "credentials.yaml"
+blob.download_to_filename(cred_file_name)
+with open('credentials.yaml') as cred_file:
+    config = yaml.load(cred_file, Loader=yaml.SafeLoader)
 
 authenticator = stauth.Authenticate(
     config['credentials'],
@@ -74,6 +77,9 @@ if not authentication_status:
             if username_forgot_pw:
                 with open('credentials.yaml', 'w') as file:
                     yaml.dump(config, file, default_flow_style=False)
+                blob = bucket.blob("credentials.yaml")
+                cred_file_name = "credentials.yaml"
+                blob.upload_from_filename(cred_file_name)
                 st.sidebar.success('New password sent securely')
             elif username_forgot_pw == False:
                 st.sidebar.error('Username not found')
@@ -84,6 +90,9 @@ if not authentication_status:
             if authenticator.register_user('Register user', 'sidebar', preauthorization=False):
                 with open('credentials.yaml', 'w') as file:
                     yaml.dump(config, file, default_flow_style=False)
+                blob = bucket.blob("credentials.yaml")
+                cred_file_name = "credentials.yaml"
+                blob.upload_from_filename(cred_file_name)
                 st.sidebar.success('User registered successfully')
         except Exception as e:
             st.sidebar.error(e)
