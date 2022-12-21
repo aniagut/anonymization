@@ -88,7 +88,7 @@ if authentication_status:
         blob.download_to_filename(file_path)
         fh = open(file_path, 'rb')
         buf = BytesIO(fh.read())
-        st.image(buf)
+        st.video(buf)
         title = file_info['title']
         description = file_info['description']
         emotions = file_info['emotions']
@@ -97,7 +97,7 @@ if authentication_status:
         if description is not None:
             st.write(f"Description: {description}")
         if emotions:
-            blob_rap = bucket.blob(f"{file_name}{extension}")
+            blob_rap = bucket.blob(f"report-08f4384a-4630-4d03-997f-6e99b682dc32-oryginal.pdf")
             file_path_rap = os.path.join("processing/anonymization", f"report-{file_name}.pdf")
             blob.download_to_filename(file_path_rap)
             fh_rap = open(file_path_rap, 'rb')
