@@ -218,3 +218,4 @@ if uploaded_file is not None:
                         file_path = os.path.join("tmp/anonymization", f"{st.session_state.file_id}{extension}")
                         blob.upload_from_filename(file_path)
                         modal.close()
+                        st.success("File successfully shared")
