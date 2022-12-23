@@ -104,7 +104,7 @@ if st.session_state.authentication_status:
             bucket = storage.bucket()
             extension = file_info['extension']
             blob = bucket.blob(f"{file_name}{extension}")
-            file_path = os.path.join("processing/anonymization", f"{file_name}{extension}")
+            file_path = os.path.join("tmp/anonymization", f"{file_name}{extension}")
             blob.download_to_filename(file_path)
             fh = open(file_path, 'rb')
             buf = BytesIO(fh.read())
