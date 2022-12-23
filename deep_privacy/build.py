@@ -56,7 +56,6 @@ def build_anonymizer(
                 opts="anonymizer.truncation_level=5, anonymizer.batch_size=32"
     """
     if config_path is None:
-        print(config_path)
         assert model_name in available_models,\
             f"{model_name} not in available models: {available_models}"
         cfg = get_config(config_urls[model_name])
