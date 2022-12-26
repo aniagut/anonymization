@@ -12,8 +12,10 @@ from streamlit_modal import Modal
 import uuid
 import smtplib, ssl
 from email.message import EmailMessage
+from emotions_analyzer import analyze_emotions_on_video, analyze_emotions_on_photo
+from report_generator import prepare_data_for_plots, PDF
 
-st.set_page_config(page_title="Main page")
+st.set_page_config(page_title="Anonymization app")
 
 # setup firebase
 if not _apps:
@@ -33,7 +35,9 @@ WARNING_FILETYPE = "Uploaded file with unsupported type. " \
                    "Please upload file that is either a video or an image."
 
 # setup credentials
-with open('credentials.yaml') as cred_file:
+blob = bucket.blob('credentials.yaml')
+blob.download_to_filename(f"tmp/credentials.yaml")
+with open('tmp/credentials.yaml') as cred_file:
     config = yaml.load(cred_file, Loader=yaml.SafeLoader)
 
 authenticator = stauth.Authenticate(
@@ -55,16 +59,20 @@ elif st.session_state.authentication_status == None:
 if st.session_state.authentication_status:
     try:
         if authenticator.update_user_details(st.session_state.username, 'Update user details', 'sidebar'):
-            with open('credentials.yaml', 'w') as file:
+            with open('tmp/credentials.yaml', 'w') as file:
                 yaml.dump(config, file, default_flow_style=False)
+            blob = bucket.blob('credentials.yaml')
+            blob.upload_from_filename('tmp/credentials.yaml')
             st.sidebar.success('Entries updated successfully')
     except Exception as e:
         st.sidebar.error(e)
 if st.session_state.authentication_status:
     try:
         if authenticator.reset_password(st.session_state.username, 'Reset password', 'sidebar'):
-            with open('credentials.yaml', 'w') as file:
+            with open('tmp/credentials.yaml', 'w') as file:
                 yaml.dump(config, file, default_flow_style=False)
+            blob = bucket.blob('credentials.yaml')
+            blob.upload_from_filename('tmp/credentials.yaml')
             st.sidebar.success('Password modified successfully')
     except Exception as e:
         st.sidebar.error(e)
@@ -75,8 +83,10 @@ if st.session_state.authentication_status == False or st.session_state.authentic
     try:
         username_forgot_pw, email_forgot_password, random_password = authenticator.forgot_password('Forgot password', 'sidebar')
         if username_forgot_pw:
-            with open('credentials.yaml', 'w') as file:
+            with open('tmp/credentials.yaml', 'w') as file:
                 yaml.dump(config, file, default_flow_style=False)
+            blob = bucket.blob('credentials.yaml')
+            blob.upload_from_filename('tmp/credentials.yaml')
 
             em = EmailMessage()
             em['From'] = st.secrets["mail"]["login"]
@@ -103,8 +113,10 @@ if st.session_state.authentication_status == False or st.session_state.authentic
 if st.session_state.authentication_status == False or st.session_state.authentication_status == None:
     try:
         if authenticator.register_user('Register user', 'sidebar', preauthorization=False):
-            with open('credentials.yaml', 'w') as file:
+            with open('tmp/credentials.yaml', 'w') as file:
                 yaml.dump(config, file, default_flow_style=False)
+            blob = bucket.blob('credentials.yaml')
+            blob.upload_from_filename('tmp/credentials.yaml')
             st.sidebar.success('User registered successfully')
     except Exception as e:
         st.sidebar.error(e)
@@ -113,7 +125,6 @@ st.title("Face anonymization app")
 st.subheader('Choose a picture or video to anonymize')
 
 uploaded_file = st.file_uploader("")
-analyze_emotions = False
 
 if uploaded_file is not None:
 
@@ -137,14 +148,20 @@ if uploaded_file is not None:
         file_name = uploaded_file.name
         original_name, extension = os.path.splitext(uploaded_file.name)
         anonymization_ready = False
+        analysis_ready = False
 
         if "file" in st.session_state and st.session_state.file == uploaded_file.getvalue():
 
             anon_path = f"processing/anonymization/{st.session_state.file_id}{extension}"
+            emotions_path = f"processing/emotions/{st.session_state.file_id}{extension}"
             blob = bucket.blob(anon_path)
             if blob.exists():
                 blob.download_to_filename(f"tmp/anonymization/{st.session_state.file_id}{extension}")
                 anonymization_ready = True
+            blob_e = bucket.blob(emotions_path)
+            if blob_e.exists():
+                blob.download_to_filename(f"tmp/emotions/{st.session_state.file_id}{extension}")
+                analysis_ready = True
 
         if not anonymization_ready:
             file_id = f"{uuid.uuid4()}-{original_name}"
@@ -159,17 +176,27 @@ if uploaded_file is not None:
                            "- fdf128_retinanet512 - medium quality and lower level of similarity\n" \
                            "- fdf128_retinanet256 - low quality but the lowest level of similarity"
             option = st.selectbox('Choose model', ("fdf128_rcnn512", "fdf128_retinanet512","fdf128_retinanet256"), help=help_message)
-            anonymize_button = st.button("Anonymize")
+            col1, col2 = st.columns(2)
+            with col1:
+                analyze_emotions = st.checkbox("Analyze emotions")
+            with col2:
+                anonymize_button = st.button("Anonymize")
 
         if not anonymization_ready and anonymize_button:
             if type == 'video':
                 with st.spinner("Please wait..."):
                     anonymize_video(uploaded_file.name, st.session_state.file_id, bucket, option)
+                    if analyze_emotions:
+                        emotions = analyze_emotions_on_video(uploaded_file.name, st.session_state.file_id, bucket)
+                        analysis_ready = True
                     anonymization_ready = True
 
             elif type == 'image':
                 with st.spinner("Please wait..."):
                     anonymize_photo(uploaded_file.name, st.session_state.file_id, bucket, option)
+                    if analyze_emotions:
+                        emotions = analyze_emotions_on_photo(uploaded_file.name, st.session_state.file_id, bucket)
+                        analysis_ready = True
                     anonymization_ready = True
 
         if anonymization_ready:
@@ -187,6 +214,40 @@ if uploaded_file is not None:
                 buf = BytesIO(fh.read())
                 st.video(buf)
                 st.download_button("Download", fh, path)
+
+        if analysis_ready:
+            if emotions:
+                path = os.path.join("tmp/emotions", f"{st.session_state.file_id}{extension}")
+                plots_names = prepare_data_for_plots(emotions)
+                pdf = PDF()
+                for i in range(0, len(plots_names) - 1, 3):
+                    pdf.print_page([plots_names[i], plots_names[i + 1], plots_names[i + 2]])
+                if len(plots_names) % 3 == 2:
+                    pdf.print_page([plots_names[-2], plots_names[-1]])
+                elif len(plots_names) % 3 == 1:
+                    pdf.print_page([plots_names[-2], plots_names[-1]])
+                pdf.output(f"tmp/report-{st.session_state.file_id}.pdf', 'F'")
+
+                raport_path = f'tmp/report-{st.session_state.file_id}.pdf'
+                if type == 'image':
+                    st.subheader("Emotions analysis on uploaded image")
+                    fh = open(path, 'rb')
+                    raport = open(raport_path, 'rb')
+                    buf = BytesIO(fh.read())
+                    st.image(buf)
+                    st.download_button("Download", fh, file_name)
+                    st.download_button("Download raport", raport, f"report-{st.session_state.file_id}.pdf")
+                elif type == 'video':
+                    st.subheader("Emotions analysis on uploaded video")
+                    fh = open(path, 'rb')
+                    raport = open(raport_path, 'rb')
+                    buf = BytesIO(fh.read())
+                    st.video(buf)
+                    st.download_button("Download", fh, file_name)
+                    st.download_button("Download raport", raport, f"report-{st.session_state.file_id}.pdf")
+
+            else:
+                st.warning("No emotions detected on uploaded video!")
 
         if anonymization_ready:
             modal = Modal("Share file", 1)
@@ -207,7 +268,7 @@ if uploaded_file is not None:
                     if st.button("Share file"):
                         priv_ref = db.reference(f"/{st.session_state.username}/files/{st.session_state.file_id}")
                         pub_ref = db.reference(f"/public/{st.session_state.file_id}")
-                        content = '{ ' + f'"title": "{title}", "description": "{description}", "extension": "{extension}", "emotions": "{False}"' + ' }'
+                        content = '{ ' + f'"title": "{title}", "description": "{description}", "extension": "{extension}", "emotions": "{analysis_ready}"' + ' }'
                         json_content = json.loads(content)
                         if private:
                             priv_ref.set(json_content)
@@ -217,5 +278,9 @@ if uploaded_file is not None:
                         blob = bucket.blob(f"{st.session_state.file_id}{extension}")
                         file_path = os.path.join("tmp/anonymization", f"{st.session_state.file_id}{extension}")
                         blob.upload_from_filename(file_path)
+                        if analysis_ready:
+                            blob1 = bucket.blob(f"processing/emotions/{st.session_state.file_id}{extension}")
+                            e_path = f"tmp/emotions/{st.session_state.file_id}{extension}"
+                            blob1.upload_from_filename(e_path)
                         modal.close()
                         st.success("File successfully shared")
