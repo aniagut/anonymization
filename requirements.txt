@@ -32,7 +32,8 @@ entrypoints==0.4
 executing==1.1.1
 extra-streamlit-components==0.1.56
 face-detection==0.2.1
-face_recognition==1.3.0
+face-recognition==1.3.0
+face-recognition-models==0.3.0
 Faker==15.3.2
 ffmpeg==1.4
 ffmpeg-python==0.2.0
