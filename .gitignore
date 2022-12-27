@@ -1,5 +1,5 @@
 ./emotions-detection-database-firebase-adminsdk-bz9g5-354f63cd0e.json
-.streamlit
+.streamlit/secrets.toml
 .debug
 .ipynb_checkpoints
 .idea
