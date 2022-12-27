@@ -8,6 +8,9 @@ streamlit-keyup==0.2.0
 streamlit-modal==0.1.0
 streamlit-toggle-switch==1.0.2
 streamlit-vertical-slider==1.0.2
+tensorboard==2.10.1
+tensorboard-data-server==0.6.1
+tensorboard-plugin-wit==1.8.1
 torch==1.12.1
 torchaudio==0.12.1
 torchvision==0.13.1
