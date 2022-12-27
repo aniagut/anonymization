@@ -1,5 +1,5 @@
 import cv2
-from face_recognition.face_recognition.api import load_image_file, face_locations
+from face_recognition.face_recognition.api import load_image_file, face_locations, compare_faces
 import os
 import numpy as np
 from GazeTracking.gaze_tracking.gaze_tracking import GazeTracking
@@ -129,7 +129,7 @@ def analyze_emotions_on_video(filename, file_id, bucket):
                 v = 'D'
 
             face_encoding = face_encodings[idx]
-            comparison = face_recognition.compare_faces(known_encodings, face_encoding)
+            comparison = compare_faces(known_encodings, face_encoding)
             if True in comparison:
                 folder_no = comparison.index(True)
             else:
