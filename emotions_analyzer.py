@@ -1,8 +1,8 @@
 import cv2
-import face_recognition
+from face_recognition.api import load_image_file, face_locations
 import os
 import numpy as np
-from GazeTracking.gaze_tracking import GazeTracking
+from GazeTracking.gaze_tracking.gaze_tracking import GazeTracking
 
 from keras.models import load_model
 from tensorflow.keras.utils import img_to_array
@@ -22,8 +22,8 @@ def analyze_emotions_on_photo(filename, file_id, bucket):
     gaze = GazeTracking()
     name, extension = os.path.splitext(filename)
     input_path = f"processing/{id}{extension}"
-    img_to_recognize = face_recognition.load_image_file(input_path)
-    face_locations = face_recognition.face_locations(img_to_recognize)
+    img_to_recognize = load_image_file(input_path)
+    face_locations_ = face_locations(img_to_recognize)
     name, extension = os.path.splitext(filename)
 
     anonymized_path = os.path.join("tmp/anonymization", f"{file_id}{extension}")
@@ -33,7 +33,7 @@ def analyze_emotions_on_photo(filename, file_id, bucket):
 
     gray = cv2.cvtColor(photo, cv2.COLOR_BGR2RGB)
     predicted_emotions = {}
-    for idx, (top, right, bottom, left) in enumerate(face_locations):
+    for idx, (top, right, bottom, left) in enumerate(face_locations_):
         cv2.rectangle(anonymized_photo, (left, top), (right, bottom), (255, 255, 255), thickness=4)
         face = gray[top:bottom, left:right]
         facergb = photo[top:bottom, left:right]
@@ -97,13 +97,13 @@ def analyze_emotions_on_video(filename, file_id, bucket):
         if not ret:
             break
 
-        face_locations = face_recognition.face_locations(frame)
+        face_locations_ = face_locations(frame)
         timestamps.append(video.get(cv2.CAP_PROP_POS_MSEC))
 
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        face_encodings = face_recognition.face_encodings(frame)
+        face_encodings = face_encodings(frame)
 
-        for idx, (top, right, bottom, left) in enumerate(face_locations):
+        for idx, (top, right, bottom, left) in enumerate(face_locations_):
             cv2.rectangle(anon_frame, (left, top), (right, bottom), (255, 255, 255), thickness=4)
             face = gray[top:bottom, left:right]
             face = cv2.resize(face, (224, 224))
