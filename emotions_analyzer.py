@@ -1,5 +1,5 @@
 import cv2
-from face_recognition.api import load_image_file, face_locations
+from face_recognition.face_recognition.api import load_image_file, face_locations
 import os
 import numpy as np
 from GazeTracking.gaze_tracking.gaze_tracking import GazeTracking
