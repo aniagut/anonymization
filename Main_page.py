@@ -33,7 +33,9 @@ WARNING_FILETYPE = "Uploaded file with unsupported type. " \
                    "Please upload file that is either a video or an image."
 
 # setup credentials
-with open('credentials.yaml') as cred_file:
+blob = bucket.blob('credentials.yaml')
+blob.download_to_filename(f"tmp/credentials.yaml")
+with open('tmp/credentials.yaml') as cred_file:
     config = yaml.load(cred_file, Loader=yaml.SafeLoader)
 
 authenticator = stauth.Authenticate(
@@ -55,16 +57,20 @@ elif st.session_state.authentication_status == None:
 if st.session_state.authentication_status:
     try:
         if authenticator.update_user_details(st.session_state.username, 'Update user details', 'sidebar'):
-            with open('credentials.yaml', 'w') as file:
+            with open('tmp/credentials.yaml', 'w') as file:
                 yaml.dump(config, file, default_flow_style=False)
+            blob = bucket.blob('credentials.yaml')
+            blob.upload_from_filename(f"tmp/credentials.yaml")
             st.sidebar.success('Entries updated successfully')
     except Exception as e:
         st.sidebar.error(e)
 if st.session_state.authentication_status:
     try:
         if authenticator.reset_password(st.session_state.username, 'Reset password', 'sidebar'):
-            with open('credentials.yaml', 'w') as file:
+            with open('tmp/credentials.yaml', 'w') as file:
                 yaml.dump(config, file, default_flow_style=False)
+            blob = bucket.blob('credentials.yaml')
+            blob.upload_from_filename(f"tmp/credentials.yaml")
             st.sidebar.success('Password modified successfully')
     except Exception as e:
         st.sidebar.error(e)
@@ -75,8 +81,10 @@ if st.session_state.authentication_status == False or st.session_state.authentic
     try:
         username_forgot_pw, email_forgot_password, random_password = authenticator.forgot_password('Forgot password', 'sidebar')
         if username_forgot_pw:
-            with open('credentials.yaml', 'w') as file:
+            with open('tmp/credentials.yaml', 'w') as file:
                 yaml.dump(config, file, default_flow_style=False)
+            blob = bucket.blob('credentials.yaml')
+            blob.upload_from_filename(f"tmp/credentials.yaml")
 
             em = EmailMessage()
             em['From'] = st.secrets["mail"]["login"]
@@ -103,8 +111,10 @@ if st.session_state.authentication_status == False or st.session_state.authentic
 if st.session_state.authentication_status == False or st.session_state.authentication_status == None:
     try:
         if authenticator.register_user('Register user', 'sidebar', preauthorization=False):
-            with open('credentials.yaml', 'w') as file:
+            with open('tmp/credentials.yaml', 'w') as file:
                 yaml.dump(config, file, default_flow_style=False)
+            blob = bucket.blob('credentials.yaml')
+            blob.upload_from_filename(f"tmp/credentials.yaml")
             st.sidebar.success('User registered successfully')
     except Exception as e:
         st.sidebar.error(e)
