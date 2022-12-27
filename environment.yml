@@ -1,0 +1,8 @@
+name: env
+channels:
+  - conda-forge
+dependencies:
+  - dlib
+  - pip
+  - pip:
+      - -r requirements.txt

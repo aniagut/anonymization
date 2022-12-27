@@ -63,10 +63,10 @@ def analyze_emotions_on_photo(filename, file_id, bucket):
         predictions = emotion_classifier.predict(img_pixels)
         max_index = np.argmax(predictions[0])
         predicted_emotion = EMOTIONS[max_index]
-        predicted_emotions[idx] = (predicted_emotion, h, v)
+        predicted_emotions[idx+1] = (predicted_emotion, h, v)
 
         cv2.putText(anonymized_photo, predicted_emotion, (int(left), int(top)), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
-        cv2.putText(anonymized_photo, f"id={idx}", (int(left), int(bottom)), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+        cv2.putText(anonymized_photo, f"id={idx+1}", (int(left), int(bottom)), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
     new_image_name = os.path.join("tmp/emotions", f"{file_id}{extension}")
     cv2.imwrite(new_image_name, anonymized_photo)
     blob = bucket.blob(f"processing/emotions/{file_id}{extension}")
@@ -131,9 +131,9 @@ def analyze_emotions_on_video(filename, file_id, bucket):
             face_encoding = face_encodings[idx]
             comparison = compare_faces(known_encodings, face_encoding)
             if True in comparison:
-                folder_no = comparison.index(True)
+                folder_no = comparison.index(True) + 1
             else:
-                folder_no = len(known_encodings)
+                folder_no = len(known_encodings) + 1
                 known_encodings.append(face_encoding)
 
             img_pixels = img_to_array(face)
@@ -154,7 +154,7 @@ def analyze_emotions_on_video(filename, file_id, bucket):
     video.release()
     anonymized_video.release()
 
-    new_video_name = os.path.join("processing/emotions", f"{id}_ns{extension}")
+    new_video_name = os.path.join("processing/emotions", f"{file_id}_ns{extension}")
     videowriter = cv2.VideoWriter(new_video_name, cv2.VideoWriter_fourcc(*'DIVX'), fps, (imageWidth, imageHeight))
 
     for i in range(len(frames_list)):
@@ -170,7 +170,7 @@ def analyze_emotions_on_video(filename, file_id, bucket):
     videoclip = clip.set_audio(audioclip)
 
     # saving video clip
-    new_video_sound_name = os.path.join("processing/emotions", f"{id}{extension}")
+    new_video_sound_name = os.path.join("processing/emotions", f"{file_id}{extension}")
     videoclip.write_videofile(new_video_sound_name)
 
     cv2.destroyAllWindows()

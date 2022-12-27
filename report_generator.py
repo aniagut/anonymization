@@ -111,6 +111,6 @@ def prepare_data_for_plots(input_list):
         for distinct_gaze in distinct_gazes:
             gaze_count.append(overall_gaze.count(distinct_gaze))
         prepare_fourth_plot(distinct_gazes, gaze_count, person_id)
-        for folder_no in range(5):
+        for folder_no in range(1,5):
             plots_files.append(f"processing/plots/{folder_no}/{person_id}.jpg")
     return plots_files
