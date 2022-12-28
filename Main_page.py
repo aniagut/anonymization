@@ -124,7 +124,7 @@ st.subheader('Choose a picture or video to anonymize')
 
 uploaded_file = st.file_uploader("")
 analyze_emotions = False
-
+greyscale = False
 if uploaded_file is not None:
 
     mimestart = mimetypes.guess_type(uploaded_file.name)
@@ -169,21 +169,29 @@ if uploaded_file is not None:
                            "- fdf128_retinanet512 - medium quality and lower level of similarity\n" \
                            "- fdf128_retinanet256 - low quality but the lowest level of similarity"
             option = st.selectbox('Choose model', ("fdf128_rcnn512", "fdf128_retinanet512","fdf128_retinanet256"), help=help_message)
-            anonymize_button = st.button("Anonymize")
+            col1, col2 = st.columns(2)
+
+            with col1:
+                greyscale = st.checkbox("Apply greyscale")
+            with col2:
+                anonymize_button = st.button("Anonymize")
 
         if not anonymization_ready and anonymize_button:
             if type == 'video':
                 with st.spinner("Please wait..."):
-                    anonymize_video(uploaded_file.name, st.session_state.file_id, bucket, option)
+                    anonymize_video(uploaded_file.name, st.session_state.file_id, bucket, option, greyscale)
                     anonymization_ready = True
 
             elif type == 'image':
                 with st.spinner("Please wait..."):
-                    anonymize_photo(uploaded_file.name, st.session_state.file_id, bucket, option)
+                    anonymize_photo(uploaded_file.name, st.session_state.file_id, bucket, option, greyscale)
                     anonymization_ready = True
 
         if anonymization_ready:
-            path = os.path.join(f"tmp/anonymization/{st.session_state.file_id}{extension}")
+            if greyscale:
+                path = os.path.join(f"tmp/anonymization/grey-{st.session_state.file_id}{extension}")
+            else:
+                path = os.path.join(f"tmp/anonymization/{st.session_state.file_id}{extension}")
             if type == 'image':
                 st.subheader("Anonymization on uploaded image")
                 fh = open(path, 'rb')
@@ -225,7 +233,10 @@ if uploaded_file is not None:
                             pub_ref.set(json_content)
                         bucket = storage.bucket()
                         blob = bucket.blob(f"{st.session_state.file_id}{extension}")
-                        file_path = os.path.join("tmp/anonymization", f"{st.session_state.file_id}{extension}")
+                        if greyscale:
+                            file_path = os.path.join(f"tmp/anonymization/grey-{st.session_state.file_id}{extension}")
+                        else:
+                            file_path = os.path.join(f"tmp/anonymization/{st.session_state.file_id}{extension}")
                         blob.upload_from_filename(file_path)
                         modal.close()
                         st.success("File successfully shared")
