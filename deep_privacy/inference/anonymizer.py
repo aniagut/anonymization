@@ -112,4 +112,5 @@ class Anonymizer:
         anonymized_video.write_videofile(
             str(target_path),
             fps=original_video.fps,
-            audio_codec='aac')
+            audio_codec='aac',
+            frames_no=total_frames)

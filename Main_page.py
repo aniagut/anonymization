@@ -1,4 +1,5 @@
 import json
+import threading
 from io import BytesIO
 
 import streamlit as st
@@ -12,8 +13,12 @@ from streamlit_modal import Modal
 import uuid
 import smtplib, ssl
 from email.message import EmailMessage
+from streamlit.runtime.scriptrunner import add_script_run_ctx
+import ctypes
 
 st.set_page_config(page_title="Main page")
+def anonymize_videofile(name, file_id, bucket, option, greyscale):
+    anonymize_video(name, file_id, bucket, option, greyscale)
 
 # setup firebase
 if not _apps:
@@ -177,11 +182,31 @@ if uploaded_file is not None:
                 anonymize_button = st.button("Anonymize")
 
         if not anonymization_ready and anonymize_button:
+
+            if "thread" in st.session_state:
+                if st.session_state.thread.is_alive():
+                    exc = ctypes.py_object(SystemExit)
+                    res = ctypes.pythonapi.PyThreadState_SetAsyncExc(
+                        ctypes.c_long(st.session_state.thread.ident), exc)
+
+            if "progress" not in st.session_state:
+                st.session_state.progress = 0
+            st.session_state.progress = 0
+
             if type == 'video':
                 with st.spinner("Please wait..."):
-                    anonymize_video(uploaded_file.name, st.session_state.file_id, bucket, option, greyscale)
+                    bar = st.progress(0)
+                    t = threading.Thread(target=anonymize_videofile, args=(uploaded_file.name, st.session_state.file_id, bucket, option, greyscale,))
+                    add_script_run_ctx(t)
+                    if not "thread" in st.session_state:
+                        st.session_state.thread = t
+                    st.session_state.thread = t
+                    t.start()
+                    while st.session_state.progress != 100:
+                        bar.progress(st.session_state.progress)
+                    if st.session_state.progress == 100:
+                        t.join()
                     anonymization_ready = True
-
             elif type == 'image':
                 with st.spinner("Please wait..."):
                     anonymize_photo(uploaded_file.name, st.session_state.file_id, bucket, option, greyscale)
